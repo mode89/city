@@ -76,17 +76,16 @@
      :primitives ({:triangles GL45/GL_TRIANGLES} primitives)
      :index-num (count indices)}))
 
-(defn draw-mesh [mesh program]
-  (let [position-loc (GL45/glGetAttribLocation program "in_position")]
-    (GL45/glEnableVertexAttribArray position-loc)
-    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER (mesh :position-buffer))
-    (GL45/glVertexAttribPointer position-loc 3 GL45/GL_FLOAT false 0 0)
-    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER 0)
-    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER (mesh :index-buffer))
-    (GL45/glDrawElements (mesh :primitives) (mesh :index-num)
-                         GL45/GL_UNSIGNED_INT 0)
-    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER 0)
-    (GL45/glDisableVertexAttribArray position-loc)))
+(defn draw-mesh [mesh position-attr]
+  (GL45/glEnableVertexAttribArray position-attr)
+  (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER (mesh :position-buffer))
+  (GL45/glVertexAttribPointer position-attr 3 GL45/GL_FLOAT false 0 0)
+  (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER 0)
+  (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER (mesh :index-buffer))
+  (GL45/glDrawElements (mesh :primitives) (mesh :index-num)
+                       GL45/GL_UNSIGNED_INT 0)
+  (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER 0)
+  (GL45/glDisableVertexAttribArray position-attr))
 
 (defn send-command [cmd]
   (reset! command cmd))
