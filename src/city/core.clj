@@ -2,7 +2,7 @@
   (:import (org.lwjgl.glfw GLFW)
            (org.lwjgl.opengl GL GL45)))
 
-(defn -main [& args]
+(defn ui []
   (GLFW/glfwInit)
   (let [window (GLFW/glfwCreateWindow 800 600 "City" 0 0)]
     (GLFW/glfwMakeContextCurrent window)
@@ -16,3 +16,9 @@
       (GLFW/glfwSwapBuffers window))
     (GLFW/glfwDestroyWindow window)
     (GLFW/glfwTerminate)))
+
+(defn start-ui-thread []
+  (.start (Thread. ui)))
+
+(defn -main [& args]
+  (start-ui-thread))
