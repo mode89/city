@@ -34,6 +34,33 @@
         (GL45/glDetachShader program vs)
         (GL45/glDeleteProgram program)))))
 
+(defn make-default-shader-program []
+  (let [vertex-shader
+         (compile-shader :vertex
+           (join "\n"
+             ["#version 450 core"
+              "in vec3 in_position;"
+              "uniform mat4 uni_mvp;"
+              "void main()"
+              "{"
+              "  gl_Position = uni_mvp * vec4(in_position, 1.0);"
+              "}"]))
+        fragment-shader
+          (compile-shader :fragment
+            (join "\n"
+              ["#version 450 core"
+               "out vec4 out_color;"
+               "uniform vec4 uni_albedo;"
+               "void main()"
+               "{"
+               "  out_color = uni_albedo;"
+               "}"]))
+        program (link-program vertex-shader fragment-shader)]
+    {:id program
+     :in-position (GL45/glGetAttribLocation program "in_position")
+     :uni-mvp (GL45/glGetUniformLocation program "uni_mvp")
+     :uni-albedo (GL45/glGetUniformLocation program "uni_albedo")}))
+
 (defn make-mesh [{:keys [primitives position indices]}]
   (let [position-buffer (GL45/glGenBuffers)
         index-buffer (GL45/glGenBuffers)]
