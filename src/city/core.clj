@@ -2,6 +2,8 @@
   (:import (org.lwjgl.glfw GLFW)
            (org.lwjgl.opengl GL GL45)))
 
+(def command (atom nil))
+
 (defn compiler-shader [shader-type source]
   (let [shader (GL45/glCreateShader
                  ({:vertex GL45/GL_VERTEX_SHADER
@@ -17,6 +19,9 @@
         (GL45/glDeleteShader shader)
         nil))))
 
+(defn send-command [cmd]
+  (reset! command cmd))
+
 (defn ui [window-promise]
   (GLFW/glfwInit)
   (let [window (GLFW/glfwCreateWindow 800 600 "City" 0 0)]
@@ -26,6 +31,9 @@
     (GL/createCapabilities)
     (GL45/glClearColor 0.1 0.1 0.5 1.0)
     (while (not (GLFW/glfwWindowShouldClose window))
+      (when (some? @command)
+        (@command)
+        (reset! command nil))
       (GLFW/glfwPollEvents)
       (GL45/glClear (bit-or GL45/GL_COLOR_BUFFER_BIT
                             GL45/GL_DEPTH_BUFFER_BIT))
