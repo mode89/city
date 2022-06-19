@@ -34,6 +34,34 @@
         (GL45/glDetachShader program vs)
         (GL45/glDeleteProgram program)))))
 
+(defn make-mesh [{:keys [primitives position indices]}]
+  (let [position-buffer (GL45/glGenBuffers)
+        index-buffer (GL45/glGenBuffers)]
+    (println "make-mesh")
+    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER position-buffer)
+    (GL45/glBufferData GL45/GL_ARRAY_BUFFER position GL45/GL_STATIC_DRAW)
+    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER 0)
+    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER index-buffer)
+    (GL45/glBufferData GL45/GL_ELEMENT_ARRAY_BUFFER
+                       indices GL45/GL_STATIC_DRAW)
+    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER 0)
+    {:position-buffer position-buffer
+     :index-buffer index-buffer
+     :primitives ({:triangles GL45/GL_TRIANGLES} primitives)
+     :index-num (count indices)}))
+
+(defn draw-mesh [mesh program]
+  (let [position-loc (GL45/glGetAttribLocation program "in_position")]
+    (GL45/glEnableVertexAttribArray position-loc)
+    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER (mesh :position-buffer))
+    (GL45/glVertexAttribPointer position-loc 3 GL45/GL_FLOAT false 0 0)
+    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER 0)
+    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER (mesh :index-buffer))
+    (GL45/glDrawElements (mesh :primitives) (mesh :index-num)
+                         GL45/GL_UNSIGNED_INT 0)
+    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER 0)
+    (GL45/glDisableVertexAttribArray position-loc)))
+
 (defn send-command [cmd]
   (reset! command cmd))
 
