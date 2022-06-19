@@ -4,7 +4,7 @@
 
 (def command (atom nil))
 
-(defn compiler-shader [shader-type source]
+(defn compile-shader [shader-type source]
   (let [shader (GL45/glCreateShader
                  ({:vertex GL45/GL_VERTEX_SHADER
                    :fragment GL45/GL_FRAGMENT_SHADER} shader-type))]
