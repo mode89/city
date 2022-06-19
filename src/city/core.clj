@@ -37,7 +37,6 @@
 (defn make-mesh [{:keys [primitives position indices]}]
   (let [position-buffer (GL45/glGenBuffers)
         index-buffer (GL45/glGenBuffers)]
-    (println "make-mesh")
     (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER position-buffer)
     (GL45/glBufferData GL45/GL_ARRAY_BUFFER position GL45/GL_STATIC_DRAW)
     (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER 0)
