@@ -1,5 +1,5 @@
 (ns city.core
-  (:import (org.lwjgl.glfw GLFW)
+  (:import (org.lwjgl.glfw GLFW GLFWFramebufferSizeCallbackI)
            (org.lwjgl.opengl GL GL45)))
 
 (def command (atom nil))
@@ -78,6 +78,10 @@
   (let [window (GLFW/glfwCreateWindow 800 600 "City" 0 0)]
     (try
       (deliver window-promise window)
+      (GLFW/glfwSetFramebufferSizeCallback window
+        (reify GLFWFramebufferSizeCallbackI
+          (invoke [this window width height]
+            (GL45/glViewport 0 0 width height))))
       (GLFW/glfwMakeContextCurrent window)
       (GLFW/glfwSwapInterval 1)
       (GL/createCapabilities)
