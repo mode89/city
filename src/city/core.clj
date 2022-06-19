@@ -2,9 +2,10 @@
   (:import (org.lwjgl.glfw GLFW)
            (org.lwjgl.opengl GL GL45)))
 
-(defn ui []
+(defn ui [window-promise]
   (GLFW/glfwInit)
   (let [window (GLFW/glfwCreateWindow 800 600 "City" 0 0)]
+    (deliver window-promise window)
     (GLFW/glfwMakeContextCurrent window)
     (GLFW/glfwSwapInterval 1)
     (GL/createCapabilities)
@@ -18,7 +19,9 @@
     (GLFW/glfwTerminate)))
 
 (defn start-ui-thread []
-  (.start (Thread. ui)))
+  (let [window (promise)]
+    (.start (Thread. #(ui window)))
+    window))
 
 (defn -main [& args]
   (start-ui-thread))
