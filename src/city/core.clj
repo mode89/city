@@ -19,6 +19,21 @@
         (GL45/glDeleteShader shader)
         nil))))
 
+(defn link-program [vs fs]
+  (let [program (GL45/glCreateProgram)]
+    (GL45/glAttachShader program vs)
+    (GL45/glAttachShader program fs)
+    (GL45/glLinkProgram program)
+    (if (= (GL45/glGetProgrami program GL45/GL_LINK_STATUS) GL45/GL_TRUE)
+      program
+      (let [info-log-length (GL45/glGetProgrami program
+                                                GL45/GL_INFO_LOG_LENGTH)]
+        (println "Failed to link program:")
+        (print (GL45/glGetProgramInfoLog program info-log-length))
+        (GL45/glDetachShader program fs)
+        (GL45/glDetachShader program vs)
+        (GL45/glDeleteProgram program)))))
+
 (defn send-command [cmd]
   (reset! command cmd))
 
