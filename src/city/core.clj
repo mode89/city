@@ -29,7 +29,7 @@
       (let [info-log-length (GL45/glGetProgrami program
                                                 GL45/GL_INFO_LOG_LENGTH)]
         (println "Failed to link program:")
-        (print (GL45/glGetProgramInfoLog program info-log-length))
+        (println (GL45/glGetProgramInfoLog program info-log-length))
         (GL45/glDetachShader program fs)
         (GL45/glDetachShader program vs)
         (GL45/glDeleteProgram program)))))
