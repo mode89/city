@@ -1,6 +1,7 @@
 (ns city.core
   (:import (org.lwjgl.glfw GLFW GLFWFramebufferSizeCallbackI)
-           (org.lwjgl.opengl GL GL45)))
+           (org.lwjgl.opengl GL GL45))
+  (:require [clojure.string :as s]))
 
 (def command (atom nil))
 
@@ -37,7 +38,7 @@
 (defn make-default-shader-program []
   (let [vertex-shader
          (compile-shader :vertex
-           (join "\n"
+           (s/join "\n"
              ["#version 450 core"
               "in vec3 in_position;"
               "uniform mat4 uni_mvp;"
@@ -47,7 +48,7 @@
               "}"]))
         fragment-shader
           (compile-shader :fragment
-            (join "\n"
+            (s/join "\n"
               ["#version 450 core"
                "out vec4 out_color;"
                "uniform vec4 uni_albedo;"
