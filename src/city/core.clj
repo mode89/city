@@ -5,7 +5,10 @@
             [city.glfw :as glfw]
             [clojure.string :as s]))
 
+(def INITIAL-VIEWPORT-SIZE {:width 800 :height 600})
+
 (def command (atom nil))
+(def viewport-size (atom INITIAL-VIEWPORT-SIZE))
 
 (defn compile-shader [shader-type source]
   (let [shader (gl/create-shader
@@ -96,18 +99,21 @@
     (@command)
     (reset! command nil))
   (glfw/poll-events)
+  (gl/viewport 0 0 (@viewport-size :width) (@viewport-size :height))
   (gl/clear (bit-or gl/COLOR-BUFFER-BIT gl/DEPTH-BUFFER-BIT))
   (glfw/swap-buffers window))
 
 (defn ui [window-promise]
   (glfw/init)
-  (let [window (glfw/create-window 800 600 "City" 0 0)]
+  (let [window (glfw/create-window (INITIAL-VIEWPORT-SIZE :width)
+                                   (INITIAL-VIEWPORT-SIZE :height)
+                                   "City" 0 0)]
     (try
       (deliver window-promise window)
       (glfw/set-framebuffer-size-callback window
         (reify GLFWFramebufferSizeCallbackI
           (invoke [this window width height]
-            (gl/viewport 0 0 width height))))
+            (reset! viewport-size {:width width :height height}))))
       (glfw/make-context-current window)
       (glfw/swap-interval 1)
       (GL/createCapabilities)
