@@ -1,39 +1,38 @@
 (ns city.core
   (:import (org.lwjgl.glfw GLFW GLFWFramebufferSizeCallbackI)
-           (org.lwjgl.opengl GL GL45))
-  (:require [clojure.string :as s]))
+           (org.lwjgl.opengl GL))
+  (:require [city.gl :as gl]
+            [clojure.string :as s]))
 
 (def command (atom nil))
 
 (defn compile-shader [shader-type source]
-  (let [shader (GL45/glCreateShader
-                 ({:vertex GL45/GL_VERTEX_SHADER
-                   :fragment GL45/GL_FRAGMENT_SHADER} shader-type))]
-    (GL45/glShaderSource shader source)
-    (GL45/glCompileShader shader)
-    (if (= (GL45/glGetShaderi shader GL45/GL_COMPILE_STATUS) GL45/GL_TRUE)
+  (let [shader (gl/create-shader
+                 ({:vertex gl/VERTEX-SHADER
+                   :fragment gl/FRAGMENT-SHADER} shader-type))]
+    (gl/shader-source shader source)
+    (gl/compile-shader shader)
+    (if (= (gl/get-shaderi shader gl/COMPILE-STATUS) gl/TRUE)
       shader
-      (let [info-log-length (GL45/glGetShaderi shader
-                                               GL45/GL_INFO_LOG_LENGTH)]
+      (let [info-log-length (gl/get-shaderi shader gl/INFO-LOG-LENGTH)]
         (println "Failed to compile shader:")
-        (println (GL45/glGetShaderInfoLog shader info-log-length))
-        (GL45/glDeleteShader shader)
+        (println (gl/get-shader-info-log shader info-log-length))
+        (gl/delete-shader shader)
         nil))))
 
 (defn link-program [vs fs]
-  (let [program (GL45/glCreateProgram)]
-    (GL45/glAttachShader program vs)
-    (GL45/glAttachShader program fs)
-    (GL45/glLinkProgram program)
-    (if (= (GL45/glGetProgrami program GL45/GL_LINK_STATUS) GL45/GL_TRUE)
+  (let [program (gl/create-program)]
+    (gl/attach-shader program vs)
+    (gl/attach-shader program fs)
+    (gl/link-program program)
+    (if (= (gl/get-programi program gl/LINK-STATUS) gl/TRUE)
       program
-      (let [info-log-length (GL45/glGetProgrami program
-                                                GL45/GL_INFO_LOG_LENGTH)]
+      (let [info-log-length (gl/get-programi program gl/INFO-LOG-LENGTH)]
         (println "Failed to link program:")
-        (println (GL45/glGetProgramInfoLog program info-log-length))
-        (GL45/glDetachShader program fs)
-        (GL45/glDetachShader program vs)
-        (GL45/glDeleteProgram program)))))
+        (println (gl/get-program-info-log program info-log-length))
+        (gl/detach-shader program fs)
+        (gl/detach-shader program vs)
+        (gl/delete-program program)))))
 
 (defn make-default-shader-program []
   (let [vertex-shader
@@ -58,35 +57,35 @@
                "}"]))
         program (link-program vertex-shader fragment-shader)]
     {:id program
-     :in-position (GL45/glGetAttribLocation program "in_position")
-     :uni-mvp (GL45/glGetUniformLocation program "uni_mvp")
-     :uni-albedo (GL45/glGetUniformLocation program "uni_albedo")}))
+     :in-position (gl/get-attrib-location program "in_position")
+     :uni-mvp (gl/get-uniform-location program "uni_mvp")
+     :uni-albedo (gl/get-uniform-location program "uni_albedo")}))
 
 (defn make-mesh [{:keys [primitives position indices]}]
-  (let [position-buffer (GL45/glGenBuffers)
-        index-buffer (GL45/glGenBuffers)]
-    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER position-buffer)
-    (GL45/glBufferData GL45/GL_ARRAY_BUFFER position GL45/GL_STATIC_DRAW)
-    (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER 0)
-    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER index-buffer)
-    (GL45/glBufferData GL45/GL_ELEMENT_ARRAY_BUFFER
-                       indices GL45/GL_STATIC_DRAW)
-    (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER 0)
+  (let [position-buffer (gl/gen-buffers)
+        index-buffer (gl/gen-buffers)]
+    (gl/bind-buffer gl/ARRAY-BUFFER position-buffer)
+    (gl/buffer-data gl/ARRAY-BUFFER position gl/STATIC-DRAW)
+    (gl/bind-buffer gl/ARRAY-BUFFER 0)
+    (gl/bind-buffer gl/ELEMENT-ARRAY-BUFFER index-buffer)
+    (gl/buffer-data gl/ELEMENT-ARRAY-BUFFER indices gl/STATIC-DRAW)
+    (gl/bind-buffer gl/ELEMENT-ARRAY-BUFFER 0)
     {:position-buffer position-buffer
      :index-buffer index-buffer
-     :primitives ({:triangles GL45/GL_TRIANGLES} primitives)
+     :primitives ({:triangles gl/TRIANGLES} primitives)
      :index-num (count indices)}))
 
 (defn draw-mesh [mesh position-attr]
-  (GL45/glEnableVertexAttribArray position-attr)
-  (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER (mesh :position-buffer))
-  (GL45/glVertexAttribPointer position-attr 3 GL45/GL_FLOAT false 0 0)
-  (GL45/glBindBuffer GL45/GL_ARRAY_BUFFER 0)
-  (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER (mesh :index-buffer))
-  (GL45/glDrawElements (mesh :primitives) (mesh :index-num)
-                       GL45/GL_UNSIGNED_INT 0)
-  (GL45/glBindBuffer GL45/GL_ELEMENT_ARRAY_BUFFER 0)
-  (GL45/glDisableVertexAttribArray position-attr))
+  (gl/enable-vertex-attrib-array position-attr)
+  (gl/bind-buffer gl/ARRAY-BUFFER (mesh :position-buffer))
+  (gl/vertex-attrib-pointer position-attr 3 gl/FLOAT false 0 0)
+  (gl/bind-buffer gl/ARRAY-BUFFER 0)
+  (gl/bind-buffer gl/ELEMENT-ARRAY-BUFFER (mesh :index-buffer))
+  (gl/draw-elements (mesh :primitives)
+                    (mesh :index-num)
+                    gl/UNSIGNED-INT 0)
+  (gl/bind-buffer gl/ELEMENT-ARRAY-BUFFER 0)
+  (gl/disable-vertex-attrib-array position-attr))
 
 (defn send-command [cmd]
   (reset! command cmd))
@@ -96,8 +95,7 @@
     (@command)
     (reset! command nil))
   (GLFW/glfwPollEvents)
-  (GL45/glClear (bit-or GL45/GL_COLOR_BUFFER_BIT
-                        GL45/GL_DEPTH_BUFFER_BIT))
+  (gl/clear (bit-or gl/COLOR-BUFFER-BIT gl/DEPTH-BUFFER-BIT))
   (GLFW/glfwSwapBuffers window))
 
 (defn ui [window-promise]
@@ -108,11 +106,11 @@
       (GLFW/glfwSetFramebufferSizeCallback window
         (reify GLFWFramebufferSizeCallbackI
           (invoke [this window width height]
-            (GL45/glViewport 0 0 width height))))
+            (gl/viewport 0 0 width height))))
       (GLFW/glfwMakeContextCurrent window)
       (GLFW/glfwSwapInterval 1)
       (GL/createCapabilities)
-      (GL45/glClearColor 0.1 0.1 0.5 1.0)
+      (gl/clear-color 0.1 0.1 0.5 1.0)
       (while (not (GLFW/glfwWindowShouldClose window))
         (tick window))
       (finally
