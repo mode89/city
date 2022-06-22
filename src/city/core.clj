@@ -1,7 +1,8 @@
 (ns city.core
-  (:import (org.lwjgl.glfw GLFW GLFWFramebufferSizeCallbackI)
+  (:import (org.lwjgl.glfw GLFWFramebufferSizeCallbackI)
            (org.lwjgl.opengl GL))
   (:require [city.gl :as gl]
+            [city.glfw :as glfw]
             [clojure.string :as s]))
 
 (def command (atom nil))
@@ -94,28 +95,28 @@
   (when (some? @command)
     (@command)
     (reset! command nil))
-  (GLFW/glfwPollEvents)
+  (glfw/poll-events)
   (gl/clear (bit-or gl/COLOR-BUFFER-BIT gl/DEPTH-BUFFER-BIT))
-  (GLFW/glfwSwapBuffers window))
+  (glfw/swap-buffers window))
 
 (defn ui [window-promise]
-  (GLFW/glfwInit)
-  (let [window (GLFW/glfwCreateWindow 800 600 "City" 0 0)]
+  (glfw/init)
+  (let [window (glfw/create-window 800 600 "City" 0 0)]
     (try
       (deliver window-promise window)
-      (GLFW/glfwSetFramebufferSizeCallback window
+      (glfw/set-framebuffer-size-callback window
         (reify GLFWFramebufferSizeCallbackI
           (invoke [this window width height]
             (gl/viewport 0 0 width height))))
-      (GLFW/glfwMakeContextCurrent window)
-      (GLFW/glfwSwapInterval 1)
+      (glfw/make-context-current window)
+      (glfw/swap-interval 1)
       (GL/createCapabilities)
       (gl/clear-color 0.1 0.1 0.5 1.0)
-      (while (not (GLFW/glfwWindowShouldClose window))
+      (while (not (glfw/window-should-close window))
         (tick window))
       (finally
-        (GLFW/glfwDestroyWindow window)
-        (GLFW/glfwTerminate)))))
+        (glfw/destroy-window window)
+        (glfw/terminate)))))
 
 (defn start-ui-thread []
   (let [window (promise)]
