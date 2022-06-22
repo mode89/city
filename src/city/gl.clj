@@ -4,12 +4,10 @@
   (:refer-clojure :exclude [flush]))
 
 (defn make-wrapper-method-name
-  ([nom]
-     (make-wrapper-method-name nom false))
+  ([nom] (make-wrapper-method-name nom false))
   ([nom allow-hyphen]
      (let [head (first nom)
-           tail (rest nom)
-           ]
+           tail (rest nom)]
        (cond
          (empty? nom) ""
          (Character/isDigit head)
