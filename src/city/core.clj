@@ -40,15 +40,15 @@
 
 (defn make-default-shader-program []
   (let [vertex-shader
-         (compile-shader :vertex
-           (s/join "\n"
-             ["#version 450 core"
-              "in vec3 in_position;"
-              "uniform mat4 uni_mvp;"
-              "void main()"
-              "{"
-              "  gl_Position = uni_mvp * vec4(in_position, 1.0);"
-              "}"]))
+          (compile-shader :vertex
+            (s/join "\n"
+              ["#version 450 core"
+               "in vec3 in_position;"
+               "uniform mat4 uni_mvp;"
+               "void main()"
+               "{"
+               "  gl_Position = uni_mvp * vec4(in_position, 1.0);"
+               "}"]))
         fragment-shader
           (compile-shader :fragment
             (s/join "\n"
