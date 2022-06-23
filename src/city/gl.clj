@@ -46,10 +46,10 @@
        (sort)
        (distinct)))
 
-(defn wrap-method [prefix cls method]
-  (let [name-no-prefix (subs method (count prefix))
+(defn wrap-method [& {:keys [prefix class-name method-name]}]
+  (let [name-no-prefix (subs method-name (count prefix))
         sname (symbol (make-wrapper-method-name name-no-prefix))
-        smethod (symbol (str cls "/" method))]
+        smethod (symbol (str class-name "/" method-name))]
     `(defmacro ~sname [& ~'params]
        `(~'~smethod ~@~'params))))
 
@@ -66,21 +66,25 @@
        (sort)
        (distinct)))
 
-(defn wrap-constant [prefix cls cname]
-  (let [cname-no-prefix (subs cname (count prefix))
+(defn wrap-constant [& {:keys [prefix class-name const-name]}]
+  (let [cname-no-prefix (subs const-name (count prefix))
         wname (symbol (make-wrapper-const-name cname-no-prefix))
-        qname (symbol (str cls "/" cname))]
+        qname (symbol (str class-name "/" const-name))]
     `(def ~wname ~qname)))
 
-(defmacro wrap-constants [prefix cls]
+(defmacro wrap-constants [& {:keys [prefix cls]}]
   `(do
-     ~@(map #(wrap-constant prefix (typename cls) (str %1))
+     ~@(map #(wrap-constant :prefix prefix
+                            :class-name (typename cls)
+                            :const-name (str %1))
             (list-all-consts prefix (resolve cls)))))
 
-(defmacro wrap-methods [prefix cls]
+(defmacro wrap-methods [& {:keys [prefix cls]}]
   `(do
-     ~@(map #(wrap-method prefix (typename cls) (str %1))
+     ~@(map #(wrap-method :prefix prefix
+                          :class-name (typename cls)
+                          :method-name (str %1))
             (list-all-methods prefix (resolve cls)))))
 
-(wrap-constants "GL_" org.lwjgl.opengl.GL45)
-(wrap-methods "gl" org.lwjgl.opengl.GL45)
+(wrap-constants :cls org.lwjgl.opengl.GL45 :prefix "GL_")
+(wrap-methods :cls org.lwjgl.opengl.GL45 :prefix "gl")
