@@ -1,11 +1,17 @@
 (ns city.core
-  (:import (org.lwjgl.glfw GLFWFramebufferSizeCallbackI)
+  (:import (java.nio FloatBuffer)
+           (org.joml Matrix4f)
+           (org.lwjgl BufferUtils)
+           (org.lwjgl.glfw GLFWFramebufferSizeCallbackI)
            (org.lwjgl.opengl GL))
-  (:require [city.gl :as gl]
+  (:require [city.ecs :as ecs]
+            [city.gl :as gl]
             [city.glfw :as glfw]
             [clojure.string :as s]))
 
 (def INITIAL-VIEWPORT-SIZE {:width 800 :height 600})
+
+(def globals (atom nil))
 
 (def command (atom nil))
 (def viewport-size (atom INITIAL-VIEWPORT-SIZE))
@@ -101,7 +107,65 @@
   (glfw/poll-events)
   (gl/viewport 0 0 (@viewport-size :width) (@viewport-size :height))
   (gl/clear (bit-or gl/COLOR-BUFFER-BIT gl/DEPTH-BUFFER-BIT))
-  (glfw/swap-buffers window))
+  (when (some? @globals)
+    (let [program (@globals :program)
+          aspect (/ (@viewport-size :width) (@viewport-size :height))
+          model-mat (-> (Matrix4f.)
+                        (.translate -0.25 0.0 0.0)
+                        ; (.rotateZ 0.5)
+                        (.rotateX 1.0)
+                        ; (.scale 1.0 1.0 1.0)
+                        )
+          view-mat (-> (Matrix4f.)
+                       (.setLookAt 0.0 0.0 2.0
+                                0.0 0.0 0.0
+                                0.0 1.0 0.0)
+                       )
+          projection-mat (-> (Matrix4f.)
+                             ; (.setOrtho2D 0 (@viewport-size :width)
+                             ;              0 (@viewport-size :height))
+                             ; (.setOrtho2D 0 1 0 1)
+                             (.setPerspective 1.0 aspect 0.01 100.0)
+                             ; (.lookAt 0.0 0.0 2.0
+                             ;          0.0 0.0 0.0
+                             ;          0.0 1.0 0.0)
+                             )
+          mvp (-> projection-mat
+                  (.mul view-mat)
+                  (.mul model-mat)
+                  )
+          ]
+      (gl/use-program (program :id))
+      (gl/uniform-matrix-4fv (program :uni-mvp) false
+                               (.get mvp (BufferUtils/createFloatBuffer 16)))
+      (gl/uniform-4f (program :uni-albedo) 1.0 0.0 0.0 1.0)
+      (draw-mesh (@globals :mesh) (program :in-position))
+      (gl/use-program 0))))
+
+(defrecord Position [x y z])
+(defrecord Rotation [x y z])
+(defrecord Mesh [primitives positions indices])
+
+(defrecord RenderingSystem
+  [default-shader
+   viewport-size])
+
+(defn make-rendering-system [window]
+  (let [viewport-size (atom INITIAL-VIEWPORT-SIZE)]
+    (glfw/set-framebuffer-size-callback window
+      (reify GLFWFramebufferSizeCallbackI
+        (invoke [this window width height]
+          (reset! viewport-size {:width width :height height}))))
+    (RenderingSystem.
+      (make-default-shader-program)
+      viewport-size)))
+
+(defmethod ecs/update-system RenderingSystem [system world]
+  (let [viewport-size (-> system :viewport-size deref)]
+    (gl/viewport 0 0 (viewport-size :width) (viewport-size :height))
+    (gl/clear-color 0.3 0.3 0.3 1.0)
+    (gl/clear (bit-or gl/COLOR-BUFFER-BIT gl/DEPTH-BUFFER-BIT))
+    world))
 
 (defn ui [window-promise]
   (glfw/init)
@@ -110,16 +174,16 @@
                                    "City" 0 0)]
     (try
       (deliver window-promise window)
-      (glfw/set-framebuffer-size-callback window
-        (reify GLFWFramebufferSizeCallbackI
-          (invoke [this window width height]
-            (reset! viewport-size {:width width :height height}))))
       (glfw/make-context-current window)
       (glfw/swap-interval 1)
       (GL/createCapabilities)
       (gl/clear-color 0.1 0.1 0.5 1.0)
-      (while (not (glfw/window-should-close window))
-        (tick window))
+      (let [world (ecs/make-world)]
+        (ecs/add-system! world (make-rendering-system window))
+        (while (not (glfw/window-should-close window))
+          (glfw/poll-events)
+          (reset! world (ecs/update-world @world))
+          (glfw/swap-buffers window)))
       (finally
         (glfw/destroy-window window)
         (glfw/terminate)))))
@@ -131,3 +195,20 @@
 
 (defn -main [& args]
   (start-ui-thread))
+
+#_(def window (start-ui-thread))
+#_ (compile-shader :vertex vertex-shader-source)
+#_ (send-command #(gl/clear-color 0.2 0.2 0.2 1))
+#_ (send-command #(gl/polygon-mode gl/FRONT-AND-BACK gl/FILL))
+#_ (send-command #(gl/polygon-mode gl/FRONT-AND-BACK gl/LINE))
+#_ (send-command
+     #(do
+        (let [program (make-default-shader-program)
+              mesh (make-mesh {:primitives :triangles
+                               :position (float-array [0.0 0.0 0.0
+                                                       0.0 0.5 0.0
+                                                       0.5 0.0 0.0
+                                                       0.5 0.5 0.0])
+                               :indices (int-array [0 1 2
+                                                    1 2 3])})]
+          (swap! globals assoc :program program :mesh mesh))))
